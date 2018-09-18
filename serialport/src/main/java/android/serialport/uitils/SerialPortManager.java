@@ -1,11 +1,12 @@
 package android.serialport.uitils;
 
-import android.serialport.SerialPort;
 import android.serialport.core.CmdPack;
 import android.serialport.model.Device;
 import android.serialport.serial.SerialReadThread;
 import android.util.Log;
 import com.licheedev.myutils.LogPlus;
+import com.rfid.serialport.SerialPort;
+
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
@@ -14,8 +15,6 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import java.io.File;
 import java.io.OutputStream;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 页面:刘华乾  on  2018/1/16.

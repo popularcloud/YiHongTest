@@ -1,22 +1,33 @@
 package cn.dlc.yihongtest;
 
+import android.serialport.core.CmdPack;
+import android.serialport.model.Commands;
+import android.serialport.uitils.ByteUtil;
+import android.serialport.uitils.HfData;
+import android.serialport.uitils.SerialPortManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
-import cn.dlc.yihongtest.util.ByteUtil;
-import cn.dlc.yihongtest.util.HfData;
 import cn.dlc.yihongtest.util.LogPlus;
 
 public class MainActivity extends AppCompatActivity {
 
     byte[] Target_Ant = new byte[4];
+    public SerialPortManager mSerialPortManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-       try{
+        try{
+            //打开锁串口
+            mSerialPortManager = SerialPortManager.instance();
+            mSerialPortManager.open(Commands.devicePathOne, Commands.BAUDRATESTR);
+
+            CmdPack openCmd = new CmdPack("3BB30004A41000320A");
+            LogPlus.e("MainActivity", "开门命令..." + openCmd.getPackHexStr());
+            mSerialPortManager.sendCommand(openCmd);
+
         int result= HfData.HfGetData.OpenHf("/dev/ttyS2",19200, 1, null);
         if(result == 0){
             LogPlus.e("打开读写器成功");

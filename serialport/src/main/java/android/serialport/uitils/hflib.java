@@ -3,6 +3,8 @@ package android.serialport.uitils;
 import android.content.Context;
 import android.util.Log;
 
+import com.rfid.reader.ReaderBase;
+
 
 public class hflib {
 	public ReaderBase reader = new ReaderBase();
