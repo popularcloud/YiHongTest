@@ -29,4 +29,6 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxjava:2.1.4'
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
     testCompile 'junit:junit:4.12'
+    //logPule
+    implementation 'com.github.licheedev.SomeLibrary:myutils:0.02'
 }

@@ -1,10 +1,10 @@
 package cn.dlc.yihongtest;
 
-import android.serialport.uitils.ByteUtil;
-import android.serialport.uitils.HfData;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import cn.dlc.yihongtest.util.ByteUtil;
+import cn.dlc.yihongtest.util.HfData;
 import cn.dlc.yihongtest.util.LogPlus;
 
 public class MainActivity extends AppCompatActivity {
