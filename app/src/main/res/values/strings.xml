@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">YiHongTest</string>
+    <string name="is_ok">正常</string>
+    <string name="reset_init">重新初始化</string>
+    <string name="open_door">开门</string>
+    <string name="startInventory">开始盘点</string>
 </resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="lock_device_path">
+        <item>请选择门锁的连接串口</item>
+        <item>/dev/ttyS0</item>
+        <item>/dev/ttyS1</item>
+        <item>/dev/ttyS2</item>
+        <item>/dev/ttyS3</item>
+        <item>/dev/ttyS4</item>
+    </string-array>
+    <string-array name="rfid_device_path">
+        <item>请选择读写器的连接串口</item>
+        <item>/dev/ttyS0</item>
+        <item>/dev/ttyS1</item>
+        <item>/dev/ttyS2</item>
+        <item>/dev/ttyS3</item>
+        <item>/dev/ttyS4</item>
+    </string-array>
+</resources>
