@@ -1,5 +1,6 @@
 package cn.dlc.yihongtest.ui;
 
+import android.app.Application;
 import android.os.Bundle;
 import android.serialport.core.CmdPack;
 import android.serialport.model.Commands;
@@ -14,14 +15,25 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import cn.dlc.yihongtest.R;
-import cn.dlc.yihongtest.util.LogPlus;
+import cn.dlc.yihongtest.base.App;
+import cn.dlc.yihongtest.bean.HeartBean;
+import cn.dlc.yihongtest.util.GsonUtil;
+import cn.dlc.yihongtest.util.LogUtil;
+import cn.dlc.yihongtest.util.MqttManager;
 import cn.dlc.yihongtest.util.WaitingDailogUtil;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements MqttCallback{
 
     @BindView(R.id.sp_lock_devicePath)
     Spinner sp_lock_devicePath;
@@ -44,6 +56,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
+        LogUtil.e("设备号为:"+ App.getInstances().imei);
+
+        //初始化mqtt
+        if(MqttManager.getInstance(MainActivity.this).creatConnect(App.getInstances().imei)){
+            sendMQTTHeart();
+        }else{
+            repairConnect();
+        }
         initView();
         initData();
     }
@@ -57,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         sp_lock_devicePath.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                LogPlus.e("获取的View的值"+((TextView)view).getText());
+                LogUtil.e("获取的View的值"+((TextView)view).getText());
                 String value = ((TextView)view).getText().toString();
                 if("请选择门锁的连接串口".equals(value)){
                     lockDevicePath = "";
@@ -91,6 +111,8 @@ public class MainActivity extends AppCompatActivity {
     private void initData(){
 
         if(TextUtils.isEmpty(lockDevicePath) || TextUtils.isEmpty(rfidDevicePath)){
+            btn_openDoor.setEnabled(false);
+            btn_startInventory.setEnabled(false);
             return;
         }
         WaitingDailogUtil.showWaitingDailog(this,"设备初始化中");
@@ -98,18 +120,20 @@ public class MainActivity extends AppCompatActivity {
             //打开锁串口
             mSerialPortManager = SerialPortManager.instance();
             mSerialPortManager.open(lockDevicePath, Commands.BAUDRATESTR);
+            btn_openDoor.setEnabled(true);
 
             //打开读头串口
             int result= HfData.HfGetData.OpenHf(rfidDevicePath,19200, 1, null);
             if(result == 0){
-                LogPlus.e("打开读写器成功");
+                LogUtil.e("打开读写器成功");
+                btn_openDoor.setEnabled(true);
                 sanRfidData();
             }else{
-                LogPlus.e("打开读写器失败"+result);
+                LogUtil.e("打开读写器失败"+result);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            LogPlus.e("打开读写器失败"+e.getMessage());
+            LogUtil.e("打开读写器失败"+e.getMessage());
         }finally {
             WaitingDailogUtil.closeDialog();
         }
@@ -119,13 +143,13 @@ public class MainActivity extends AppCompatActivity {
     public void onViewClick(View view){
         switch (view.getId()){
             case R.id.btn_openDoor:
-
+                openDoor();
                 break;
             case R.id.btn_reset:
-
+                initData();
                 break;
             case R.id.btn_startInventory:
-
+                sanRfidData();
                 break;
         }
     }
@@ -135,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
     private void sanRfidData(){
         byte[] readdata_15693 = HfData.HfGetData.getReaddata_15693();
 
-        LogPlus.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
+        LogUtil.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
 
         /*  Target_Ant[0]= 0x00;
             Target_Ant[1]= 0x00;
@@ -154,9 +178,9 @@ public class MainActivity extends AppCompatActivity {
         Target_Ant[2]|=0x02;
         int[] fcmdret=new int[1];
         String[] strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
-        LogPlus.e("扫描获取的数据数量:"+ strings);
+        LogUtil.e("扫描获取的数据数量:"+ strings);
         for (String s:strings){
-            LogPlus.e("扫描获取的数据:"+ s);
+            LogUtil.e("扫描获取的数据:"+ s);
         }
     }
 
@@ -165,7 +189,123 @@ public class MainActivity extends AppCompatActivity {
      */
     private void openDoor(){
         CmdPack openCmd = new CmdPack("3BB30004A41000320A");
-        LogPlus.e("MainActivity", "开门命令..." + openCmd.getPackHexStr());
+        LogUtil.e("MainActivity", "开门命令..." + openCmd.getPackHexStr());
         mSerialPortManager.sendCommand(openCmd);
+    }
+
+    @Override
+    public void connectionLost(Throwable cause) {
+        LogUtil.e("mqtt失去连接");
+    }
+
+    @Override
+    public void messageArrived(String topic, MqttMessage message) throws Exception {
+        LogUtil.e("topic"+topic + "message"+message);
+
+        sendToMQTT("yihongshg","we can receive");
+    }
+
+    @Override
+    public void deliveryComplete(IMqttDeliveryToken token) {
+        LogUtil.e("发布订阅完成"+token);
+    }
+
+    private void sendToMQTT(final String topic, final String jsonData){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                LogUtil.e("发布订阅：!"+jsonData);
+                MqttManager.getInstance(MainActivity.this).publish(topic,2,jsonData.getBytes());
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        /**
+         * 断开mqtt
+         */
+        MqttManager.release();
+    }
+
+    private Timer mTimer;
+    private TimerTask mTask;
+
+    private final java.util.Timer timer = new java.util.Timer(true);
+
+    //定义重连的任务
+    private TimerTask connectTask;
+
+    /**
+     * 修复连接
+     */
+    private void repairConnect(){
+        LogUtil.e("mqtt连接失败  5秒后重新连接");
+
+        connectTask = null;
+
+        if(connectTask == null){
+            connectTask = new TimerTask() {
+                @Override
+                public void run() {
+                    LogUtil.e("mqtt准备重新连接");
+                    /**
+                     * 断开重连
+                     */
+                    if(MqttManager.getInstance(MainActivity.this).creatConnect(App.getInstances().imei)){
+                        sendMQTTHeart();
+                    }else{
+                        repairConnect();
+                    }
+                }
+            };
+        }
+        if(timer != null){
+            timer.schedule(connectTask,5000);
+        }
+    }
+
+    /**
+     * 发送心跳
+     */
+    private void sendMQTTHeart(){
+        mTimer = new Timer();
+        mTask = new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    if(TextUtils.isEmpty(App.getInstances().imei)){
+                        return;
+                    }
+                    HeartBean heartBean = new HeartBean(App.getInstances().imei);
+                    heartBean.setUpdate("true");
+                    String heartStr = GsonUtil.GsonString(heartBean);
+                    LogUtil.d("发布心跳：!"+heartStr);
+
+                    MqttManager.getInstance(MainActivity.this).publish("yihongshg/apk/index/deviceStatus",2,heartStr.getBytes());
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        mTimer.schedule(mTask, 0, 30000);
+    }
+
+    /**
+     * 释放心跳任务
+     */
+    public void realeseTask(){
+        if (mTask != null) {
+            mTask.cancel();
+            mTask = null;
+        }
+        if (mTimer != null) {
+            mTimer.purge();
+            mTimer.cancel();
+            mTimer = null;
+        }
     }
 }

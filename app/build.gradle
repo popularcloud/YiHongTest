@@ -33,5 +33,10 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     compile 'com.jakewharton:butterknife:8.8.1'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
+    // Mqtt client : Eclipse Paho
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2'
+    //其中latest.release指代最新Bugly SDK版本号，也可以指定明确的版本号，例如2.1.9
+    implementation 'com.tencent.bugly:crashreport:latest.release'
+    implementation 'com.google.code.gson:gson:2.8.4'
     api project(':serialport')
 }
