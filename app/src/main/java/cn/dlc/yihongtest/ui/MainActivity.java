@@ -48,6 +48,10 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     Button btn_openDoor;
     @BindView(R.id.btn_startInventory)
     Button btn_startInventory;
+    @BindView(R.id.tv_result)
+    TextView tv_result;
+    @BindView(R.id.tv_rfid_status)
+    TextView tv_rfid_status;
     byte[] Target_Ant = new byte[4];
     public SerialPortManager mSerialPortManager;
     private String lockDevicePath;
@@ -122,9 +126,11 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         try{
             //打开锁串口
             mSerialPortManager = SerialPortManager.instance();
+            ///dev/ttyS1
             mSerialPortManager.open(lockDevicePath, Commands.BAUDRATESTR);
             btn_openDoor.setEnabled(true);
 
+            ///dev/ttyS2
             //打开读头串口
             int result= HfData.HfGetData.OpenHf(rfidDevicePath,19200, 1, null);
             if(result == 0){
@@ -163,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         byte[] readdata_15693 = HfData.HfGetData.getReaddata_15693();
 
         LogUtil.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
+        tv_rfid_status.setText("读写器状态:"+ByteUtil.bytes2BinStr(readdata_15693));
 
         /*  Target_Ant[0]= 0x00;
             Target_Ant[1]= 0x00;
@@ -182,6 +189,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         int[] fcmdret=new int[1];
         String[] strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
         LogUtil.e("扫描获取的数据数量:"+ strings);
+        tv_result.setText("扫描到的标签数:"+strings.length);
         for (String s:strings){
             LogUtil.e("扫描获取的数据:"+ s);
         }
@@ -247,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         }
         String data = GsonUtil.GsonString(map);
 
-        sendToMQTT("yihongshg",data);
+        sendToMQTT("yihongshg/apk/index/doorOpen",data);
 
         /**
          * 5 秒后关门 上传rfid
@@ -262,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                     params.put("macno",App.getInstances().imei);
                     params.put("rfid","bb12345678,bb12345679,bb12345671");
                     String data = GsonUtil.GsonString(params);
-                    sendToMQTT("yihongshg",data);
+                    sendToMQTT("yihongshg/apk/Device/api",data);
                 }else{
                     Map<String,String> params = new HashMap<>();
                     params.put("api_name","closeDoor");
@@ -280,7 +288,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                             break;
                     }
                     String data = GsonUtil.GsonString(params);
-                    sendToMQTT("yihongshg",data);
+                    sendToMQTT("yihongshg/apk/Device/api",data);
                 }
             }
         });
