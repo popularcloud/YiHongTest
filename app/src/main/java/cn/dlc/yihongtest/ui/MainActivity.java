@@ -19,6 +19,8 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -31,6 +33,7 @@ import cn.dlc.yihongtest.bean.HeartBean;
 import cn.dlc.yihongtest.util.GsonUtil;
 import cn.dlc.yihongtest.util.LogUtil;
 import cn.dlc.yihongtest.util.MqttManager;
+import cn.dlc.yihongtest.util.RxTimerUtil;
 import cn.dlc.yihongtest.util.WaitingDailogUtil;
 
 public class MainActivity extends AppCompatActivity implements MqttCallback{
@@ -196,13 +199,91 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     @Override
     public void connectionLost(Throwable cause) {
         LogUtil.e("mqtt失去连接");
+        //停止心跳发送
+        realeseTask();
+
+        repairConnect();
     }
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         LogUtil.e("topic"+topic + "message"+message);
 
-        sendToMQTT("yihongshg","we can receive");
+        /**
+         * 1.openDoor_common 购买开门
+         * 2.openDoor_addGoods 补货开门
+         * 3.openDoor_clearAll 清空
+         */
+        String myAction = message.toString();
+        switch (myAction){
+            case "openDoor_common":
+                onOpenDoor("openDoor_common");
+                break;
+            case "openDoor_addGoods":
+                onOpenDoor("openDoor_addGoods");
+                break;
+            case "openDoor_clearAll":
+                onOpenDoor("openDoor_clearAll");
+                break;
+        }
+
+    }
+
+    public void onOpenDoor(final String myAction){
+        Map<String,String> map = new HashMap();
+        map.put("macno",App.getInstances().imei);
+        map.put("apiname",myAction);
+        map.put("status","1");
+        switch (myAction){
+            case "openDoor_common":
+                map.put("openType","2");
+                break;
+            case "openDoor_addGoods":
+                map.put("openType","1");
+                break;
+            case "openDoor_clearAll":
+                map.put("openType","3");
+                break;
+        }
+        String data = GsonUtil.GsonString(map);
+
+        sendToMQTT("yihongshg",data);
+
+        /**
+         * 5 秒后关门 上传rfid
+         */
+        RxTimerUtil.timer(5000, new RxTimerUtil.IRxNext() {
+            @Override
+            public void doNext(long number) {
+
+                if("openDoor_common".equals(myAction)){
+                    Map<String,String> params = new HashMap<>();
+                    params.put("api_name","userDoor");
+                    params.put("macno",App.getInstances().imei);
+                    params.put("rfid","bb12345678,bb12345679,bb12345671");
+                    String data = GsonUtil.GsonString(params);
+                    sendToMQTT("yihongshg",data);
+                }else{
+                    Map<String,String> params = new HashMap<>();
+                    params.put("api_name","closeDoor");
+                    params.put("macno",App.getInstances().imei);
+                    params.put("rfid","bb12345678,bb12345679,bb12345671");
+                    switch (myAction){
+                        case "openDoor_common":
+
+                            break;
+                        case "openDoor_addGoods":
+                            params.put("openType","1");
+                            break;
+                        case "openDoor_clearAll":
+                            params.put("closeType","2");
+                            break;
+                    }
+                    String data = GsonUtil.GsonString(params);
+                    sendToMQTT("yihongshg",data);
+                }
+            }
+        });
     }
 
     @Override
