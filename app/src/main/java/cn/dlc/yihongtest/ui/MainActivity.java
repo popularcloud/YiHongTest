@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     private String rfidDevicePath;
     private String[] strings;
     private byte[] readdata_15693;
+    private boolean isOpen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -224,16 +225,22 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
      */
     @Subscribe(threadMode = ThreadMode.MAIN) //在ui线程执行
     public void getCabinetGautam(FeedbackEvent timeEvent) {
-        String text = "收到硬件反馈：：：" + timeEvent.toString()
-                + "..." + "温度是=" + timeEvent.getTemperature();
-        LogUtil.e(text);
-
         switch (timeEvent.command) {
             case "A4"://开门成功通知后台
-                LogUtil.e("收到开门应答");
+
+                String doorNumber = timeEvent.appdata.substring(0,2);
+                if("00".equals(timeEvent.appdata.substring(2,4))){
+                    LogUtil.e("门编号:"+doorNumber + "开门成功");
+                }else{
+                    LogUtil.e("门编号:"+doorNumber + "开门失败");
+                }
+
                 break;
             case "5C":
                 LogUtil.e("收到控制板主动上传的状态");
+                if(isOpen){
+
+                }
                 break;
         }
     }

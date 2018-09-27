@@ -101,11 +101,11 @@ public class SerialReadThread extends Thread {
             SystemClock.sleep(1);//确保是堵塞线程 让interrupt()起作用 可以退出线程
             // 如果长度不满足最小长度，则跳出循环，等下新数据
             if (currentSize - temp >= Protocols.MIN_SIZE) {
-                // 第1个字节不为 3A，则直接下一轮
+                // 第1个字节不为 3B，则直接下一轮
                 if (buffer[temp++] != Protocols.FRAME_HEAD_0) {
                     continue;
                 }
-                // 第2个字节不为 A3，则直接下一轮
+                // 第2个字节不为 B3，则直接下一轮
                 if (buffer[temp++] != Protocols.FRAME_HEAD_1) {
                     continue;
                 }
