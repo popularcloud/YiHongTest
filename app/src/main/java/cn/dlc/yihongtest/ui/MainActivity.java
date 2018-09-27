@@ -495,7 +495,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                     String heartStr = GsonUtil.GsonString(heartBean);
                     LogUtil.d("发布心跳：!"+heartStr);
 
-                    MqttManager.getInstance(MainActivity.this).publish("yihongshg/apk/index/deviceStatus",2,heartStr.getBytes());
+                    MqttManager.getInstance(MainActivity.this).publish("yihongshg/apk/beat/deviceStatus",2,heartStr.getBytes());
 
                 } catch (Exception e) {
                     e.printStackTrace();
