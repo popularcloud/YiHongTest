@@ -275,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 LogUtil.e("收到控制板主动上传的状态");
 
                 String appData = timeEvent.appdata;
-                String appStatus = appData.substring(appData.length()-8,appData.length());
+                String appStatus = appData.substring(appData.length()-9,appData.length()-1);
                 String doorOne = appStatus.substring(0,2);
                 String lockOne = appStatus.substring(4,6);
                 if("01".equals(doorOne) && "00".equals(lockOne) && !isOpen){
@@ -330,32 +330,23 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     }
 
     private void sendToServiceData(){
-                if("openDoor_common".equals(openType)){
-                    Map<String,String> params = new HashMap<>();
-                    params.put("api_name","userDoor");
-                    params.put("macno",App.getInstances().imei);
-                    params.put("rfid","bb12345678,bb12345679,bb12345671");
-                    String data = GsonUtil.GsonString(params);
-                    sendToMQTT("yihongshg/apk/Device/api",data);
-                }else{
                     Map<String,String> params = new HashMap<>();
                     params.put("api_name","closeDoor");
                     params.put("macno",App.getInstances().imei);
                     params.put("rfid","bb12345678,bb12345679,bb12345671");
                     switch (openType){
                         case "openDoor_common":
-
+                            params.put("openType","2");
                             break;
                         case "openDoor_addGoods":
                             params.put("openType","1");
                             break;
                         case "openDoor_clearAll":
-                            params.put("closeType","2");
+                            params.put("closeType","3");
                             break;
                     }
                     String data = GsonUtil.GsonString(params);
-                    sendToMQTT("yihongshg/apk/Device/api",data);
-                }
+                    sendToMQTT("yihongshg/apk/device/closeDoorNotify",data);
     }
 
     @Override
@@ -492,6 +483,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                     }
                     HeartBean heartBean = new HeartBean(App.getInstances().imei);
                     heartBean.setUpdate("true");
+                    heartBean.setDoorStatus(isOpen);
                     String heartStr = GsonUtil.GsonString(heartBean);
                     LogUtil.d("发布心跳：!"+heartStr);
 

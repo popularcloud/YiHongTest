@@ -10,6 +10,7 @@ public class HeartBean {
     String macno;
     String version;
     String update;
+    boolean doorStatus;
 
     public HeartBean(String macno){
         setMacno(macno);
@@ -37,5 +38,13 @@ public class HeartBean {
 
     public void setUpdate(String update) {
         this.update = update;
+    }
+
+    public boolean getDoorStatus() {
+        return doorStatus;
+    }
+
+    public void setDoorStatus(boolean doorStatus) {
+        this.doorStatus = doorStatus;
     }
 }
