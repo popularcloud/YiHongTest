@@ -14,19 +14,6 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
-
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -38,6 +25,16 @@ import cn.dlc.yihongtest.util.LogUtil;
 import cn.dlc.yihongtest.util.MqttManager;
 import cn.dlc.yihongtest.util.RxTimerUtil;
 import cn.dlc.yihongtest.util.WaitingDailogUtil;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 public class MainActivity extends AppCompatActivity implements MqttCallback{
 
@@ -126,25 +123,25 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
      */
     private void initData(){
 
-        if(TextUtils.isEmpty(lockDevicePath) || TextUtils.isEmpty(rfidDevicePath)){
+     /*   if(TextUtils.isEmpty(lockDevicePath) || TextUtils.isEmpty(rfidDevicePath)){
             btn_openDoor.setEnabled(false);
             btn_startInventory.setEnabled(false);
             return;
-        }
+        }*/
         WaitingDailogUtil.showWaitingDailog(this,"设备初始化中");
         try{
             //打开锁串口
             mSerialPortManager = SerialPortManager.instance();
             ///dev/ttyS1
-            mSerialPortManager.open(lockDevicePath, Commands.BAUDRATESTR);
+            mSerialPortManager.open("/dev/ttyS1", Commands.BAUDRATESTR);
             btn_openDoor.setEnabled(true);
 
             ///dev/ttyS2
             //打开读头串口
-            int result= HfData.HfGetData.OpenHf(rfidDevicePath,19200, 1, null);
+            int result= HfData.HfGetData.OpenHf("/dev/ttyS2",19200, 1, null);
             if(result == 0){
                 LogUtil.e("打开读写器成功");
-                btn_openDoor.setEnabled(true);
+                btn_startInventory.setEnabled(true);
                 sanRfidData();
             }else{
                 LogUtil.e("打开读写器失败"+result);
@@ -180,6 +177,8 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
             public void run() {
                 readdata_15693 = HfData.HfGetData.getReaddata_15693();
                 LogUtil.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
+        
+
         /*  Target_Ant[0]= 0x00;
             Target_Ant[1]= 0x00;
             Target_Ant[2]= 0x03;
@@ -208,8 +207,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
             }
         }).start();
 
-    }
-
+}
     /**
      * 开锁
      */
@@ -237,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
 
                 break;
             case "5C":
-                LogUtil.e("收到控制板主动上传的状态");
+                LogUtil.e("收到控制板主动上传的状态"+timeEvent.appdata);
                 if(isOpen){
 
                 }
