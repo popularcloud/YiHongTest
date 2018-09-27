@@ -1,9 +1,9 @@
 package cn.dlc.yihongtest.ui;
 
-import android.app.Application;
 import android.os.Bundle;
 import android.serialport.core.CmdPack;
 import android.serialport.model.Commands;
+import android.serialport.serial.event.FeedbackEvent;
 import android.serialport.uitils.ByteUtil;
 import android.serialport.uitils.HfData;
 import android.serialport.uitils.SerialPortManager;
@@ -18,6 +18,9 @@ import android.widget.TextView;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -56,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     public SerialPortManager mSerialPortManager;
     private String lockDevicePath;
     private String rfidDevicePath;
+    private String[] strings;
+    private byte[] readdata_15693;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,12 +70,15 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
 
         LogUtil.e("设备号为:"+ App.getInstances().imei);
 
+        //注册eventBus 处理硬件反馈信息
+        EventBus.getDefault().register(this);
         //初始化mqtt
         if(MqttManager.getInstance(MainActivity.this).creatConnect(App.getInstances().imei)){
             sendMQTTHeart();
         }else{
             repairConnect();
         }
+
         initView();
         initData();
     }
@@ -166,33 +174,39 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
      * 扫描rfid
      */
     private void sanRfidData(){
-        byte[] readdata_15693 = HfData.HfGetData.getReaddata_15693();
-
-        LogUtil.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
-        tv_rfid_status.setText("读写器状态:"+ByteUtil.bytes2BinStr(readdata_15693));
-
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                readdata_15693 = HfData.HfGetData.getReaddata_15693();
+                LogUtil.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
         /*  Target_Ant[0]= 0x00;
             Target_Ant[1]= 0x00;
             Target_Ant[2]= 0x03;
             Target_Ant[3]= (byte) 0xff;*/
-        Target_Ant[0]=Target_Ant[1]=Target_Ant[2]=Target_Ant[3]=0;
-        Target_Ant[3]|=0x01;
-        Target_Ant[3]|=0x02;
-        Target_Ant[3]|=0x04;
-        Target_Ant[3]|=0x08;
-        Target_Ant[3]|=0x10;
-        Target_Ant[3]|=0x20;
-        Target_Ant[3]|=0x40;
-        Target_Ant[3]|=0x80;
-        Target_Ant[2]|=0x01;
-        Target_Ant[2]|=0x02;
-        int[] fcmdret=new int[1];
-        String[] strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
-        LogUtil.e("扫描获取的数据数量:"+ strings);
-        tv_result.setText("扫描到的标签数:"+strings.length);
-        for (String s:strings){
-            LogUtil.e("扫描获取的数据:"+ s);
-        }
+                Target_Ant[0]=Target_Ant[1]=Target_Ant[2]=Target_Ant[3]=0;
+                Target_Ant[3]|=0x01;
+                Target_Ant[3]|=0x02;
+                Target_Ant[3]|=0x04;
+                Target_Ant[3]|=0x08;
+                Target_Ant[3]|=0x10;
+                Target_Ant[3]|=0x20;
+                Target_Ant[3]|=0x40;
+                Target_Ant[3]|=0x80;
+                Target_Ant[2]|=0x01;
+                Target_Ant[2]|=0x02;
+                int[] fcmdret=new int[1];
+                strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
+                LogUtil.e("扫描获取的数据数量:"+ strings);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        tv_rfid_status.setText("读写器状态:"+ByteUtil.bytes2BinStr(readdata_15693));
+                        tv_result.setText("扫描到的标签数:"+strings.length);
+                    }
+                });
+            }
+        }).start();
+
     }
 
     /**
@@ -202,6 +216,26 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         CmdPack openCmd = new CmdPack("3BB30004A41000320A");
         LogUtil.e("MainActivity", "开门命令..." + openCmd.getPackHexStr());
         mSerialPortManager.sendCommand(openCmd);
+    }
+
+    /**
+     * 开锁反馈
+     * @param timeEvent
+     */
+    @Subscribe(threadMode = ThreadMode.MAIN) //在ui线程执行
+    public void getCabinetGautam(FeedbackEvent timeEvent) {
+        String text = "收到硬件反馈：：：" + timeEvent.toString()
+                + "..." + "温度是=" + timeEvent.getTemperature();
+        LogUtil.e(text);
+
+        switch (timeEvent.command) {
+            case "A4"://开门成功通知后台
+                LogUtil.e("收到开门应答");
+                break;
+            case "5C":
+                LogUtil.e("收到控制板主动上传的状态");
+                break;
+        }
     }
 
     @Override
@@ -224,7 +258,10 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
          */
         String myAction = message.toString();
         switch (myAction){
-            case "openDoor_common":
+            case "openDoor_common": //购物
+
+                openDoor();
+
                 onOpenDoor("openDoor_common");
                 break;
             case "openDoor_addGoods":
