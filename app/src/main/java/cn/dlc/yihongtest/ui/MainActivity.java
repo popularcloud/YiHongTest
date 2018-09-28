@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     public SerialPortManager mSerialPortManager;
     private String lockDevicePath;
     private String rfidDevicePath;
-    private String[] strings;
+
     private byte[] readdata_15693;
     private boolean isOpen = false;
     private String openType = "first_inventory";
@@ -210,8 +210,8 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 Target_Ant[2]|=0x01;
                 Target_Ant[2]|=0x02;
                 int[] fcmdret=new int[1];
-                strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
-                if(strings != null){
+                final String[] strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
+                if(strings == null){
                     LogUtil.e("");
                     return;
                 }
@@ -397,7 +397,6 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 if(presentList != null){
                     beforList = presentList.clone();
                 }
-               
                 break;
         }
 
