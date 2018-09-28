@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
 
     private int invertoryType = 0;
     private Thread scanThead;
+    private OperateBean operateBean;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -210,27 +211,31 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 Target_Ant[2]|=0x02;
                 int[] fcmdret=new int[1];
                 strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
-                LogUtil.e("扫描获取的数据数量:"+ strings);
+                if(strings != null){
+                    LogUtil.e("");
+                    return;
+                }
+                LogUtil.e("扫描获取的数据数量:"+ strings.length);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         tv_rfid_status.setText("读写器状态:"+ByteUtil.bytes2BinStr(readdata_15693));
                         tv_result.setText("扫描到的标签数:"+strings.length);
                         switch (openType){
-                            case "openType":
-                                beforList = strings;
+                            case "first_inventory":
+                                beforList = strings.clone();
                                 presentList = null;
                             break;
                             case "openDoor_common":
-                                presentList = strings;
+                                presentList = strings.clone();
                                 sendToServiceData();
                                 break;
                             case "openDoor_addGoods":
-                                presentList = strings;
+                                presentList = strings.clone();
                                 sendToServiceData();
                                 break;
                             case "openDoor_clearAll":
-                                presentList = strings;
+                                presentList = strings.clone();
                                 sendToServiceData();
                                 break;
                         }
@@ -272,15 +277,16 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
             case "5C":
                 //LogUtil.e("收到控制板主动上传的状态"+timeEvent.appdata);
                 String appData = timeEvent.appdata;
-                String appStatus = appData.substring(appData.length()-9,appData.length()-1);
+                String appStatus = appData.substring(appData.length()-8,appData.length());
                 String doorOne = appStatus.substring(0,2);
                 String lockOne = appStatus.substring(4,6);
-                if("01".equals(doorOne) && "00".equals(lockOne) && !isOpen){
+                LogUtil.e("doorOne="+doorOne +"lockOne="+lockOne);
+                if("00".equals(doorOne) && "01".equals(lockOne) && !isOpen){
                     LogUtil.e("门被拉开！");
                     isOpen = true;
                 }
 
-                if("00".equals(doorOne) && "01".equals(lockOne) && isOpen){
+                if("01".equals(doorOne) && "00".equals(lockOne) && isOpen){
                     LogUtil.e("门被关闭！");
                     isOpen = false;
                     sanRfidData();
@@ -327,10 +333,11 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     }
 
     private void sendToServiceData(){
-                String rfid = compare(presentList,beforList);
+                    String rfid = compare(presentList,beforList);
                     Map<String,String> params = new HashMap<>();
                     params.put("api_name","closeDoor");
                     params.put("macno",App.getInstances().imei);
+                    params.put("oid",operateBean.getOid());
                     params.put("rfid",rfid);
                     switch (openType){
                         case "openDoor_common":
@@ -359,14 +366,20 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         LogUtil.e("topic"+topic + "message"+message);
+
         String myAction = message.toString();
-        OperateBean operateBean = GsonUtil.GsonToBean(myAction, OperateBean.class);
+        operateBean = GsonUtil.GsonToBean(myAction, OperateBean.class);
+        if(operateBean == null){
+            return;
+        }
+
+
         /**
          * 1.openDoor_common 购买开门
          * 2.openDoor_addGoods 补货开门
          * 3.openDoor_clearAll 清空
          */
-
+        
         switch (operateBean.getOperateType()){
             case "openDoor_common": //购物
                 openType = "openDoor_common";
@@ -379,6 +392,12 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
             case "openDoor_clearAll":
                 openType = "openDoor_clearAll";
                 openDoor();
+                break;    
+             case "confirm":
+                if(presentList != null){
+                    beforList = presentList.clone();
+                }
+               
                 break;
         }
 
@@ -388,6 +407,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         Map<String,String> map = new HashMap();
         map.put("macno",App.getInstances().imei);
         map.put("apiname",myAction);
+        map.put("oid",operateBean.getOid());
         map.put("status","1");
         switch (myAction){
             case "openDoor_common":
