@@ -20,6 +20,7 @@ import butterknife.OnClick;
 import cn.dlc.yihongtest.R;
 import cn.dlc.yihongtest.base.App;
 import cn.dlc.yihongtest.bean.HeartBean;
+import cn.dlc.yihongtest.bean.OperateBean;
 import cn.dlc.yihongtest.util.GsonUtil;
 import cn.dlc.yihongtest.util.LogUtil;
 import cn.dlc.yihongtest.util.MqttManager;
@@ -358,14 +359,15 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         LogUtil.e("topic"+topic + "message"+message);
-
+        String myAction = message.toString();
+        OperateBean operateBean = GsonUtil.GsonToBean(myAction, OperateBean.class);
         /**
          * 1.openDoor_common 购买开门
          * 2.openDoor_addGoods 补货开门
          * 3.openDoor_clearAll 清空
          */
-        String myAction = message.toString();
-        switch (myAction){
+
+        switch (operateBean.getOperateType()){
             case "openDoor_common": //购物
                 openType = "openDoor_common";
                 openDoor();
