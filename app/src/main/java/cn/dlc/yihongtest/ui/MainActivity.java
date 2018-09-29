@@ -25,7 +25,6 @@ import cn.dlc.yihongtest.util.GsonUtil;
 import cn.dlc.yihongtest.util.LogUtil;
 import cn.dlc.yihongtest.util.MqttManager;
 import cn.dlc.yihongtest.util.WaitingDailogUtil;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -153,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
             if(result == 0){
                 LogUtil.e("打开读写器成功");
                 btn_startInventory.setEnabled(true);
-                sanRfidData();
+                //sanRfidData();
             }else{
                 LogUtil.e("打开读写器失败"+result);
             }
@@ -211,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 Target_Ant[2]|=0x02;
                 int[] fcmdret=new int[1];
                 strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
-                if(strings != null){
+                if(strings == null){
                     LogUtil.e("");
                     return;
                 }
@@ -311,22 +310,23 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
 
         if(t1.length <= t2.length){
             List<String> list1 = Arrays.asList(t1); //将t1数组转成list数组
-            List<String> list2 = new ArrayList<String>();//用来存放2个数组中不相同的元素
+            //List<String> list2 = new ArrayList<String>();//用来存放2个数组中不相同的元素
+            StringBuilder sb = new StringBuilder();
             for (String t : t2) {
                 if (!list1.contains(t)) {
-                    list2.add(t);
+                    sb.append(t+",");
                 }
             }
-            return GsonUtil.GsonString(list2);
+            return sb.toString();
         }else{
             List<String> list1 = Arrays.asList(t2); //将t1数组转成list数组
-            List<String> list2 = new ArrayList<String>();//用来存放2个数组中不相同的元素
+            StringBuilder sb = new StringBuilder();//用来存放2个数组中不相同的元素
             for (String t : t1) {
                 if (!list1.contains(t)) {
-                    list2.add(t);
+                    sb.append(t+",");
                 }
             }
-            return GsonUtil.GsonString(list2);
+            return sb.toString();
         }
 
 
@@ -334,6 +334,9 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
 
     private void sendToServiceData(){
                     String rfid = compare(presentList,beforList);
+                    if (rfid != null) {
+                        rfid =  rfid.replace("[","").replace("]","");
+                    }
                     Map<String,String> params = new HashMap<>();
                     params.put("api_name","closeDoor");
                     params.put("macno",App.getInstances().imei);
@@ -369,9 +372,9 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
 
         String myAction = message.toString();
         operateBean = GsonUtil.GsonToBean(myAction, OperateBean.class);
-        if(operateBean == null){
+    /*    if(operateBean == null){
             return;
-        }
+        }*/
 
 
         /**
@@ -394,6 +397,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 openDoor();
                 break;    
              case "confirm":
+                 LogUtil.e("执行确认操作");
                 if(presentList != null){
                     beforList = presentList.clone();
                 }
