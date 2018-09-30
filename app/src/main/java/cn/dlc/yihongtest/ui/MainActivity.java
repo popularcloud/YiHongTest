@@ -58,8 +58,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     public SerialPortManager mSerialPortManager;
     private String lockDevicePath;
     private String rfidDevicePath;
-    private String[] strings;
-    private byte[] readdata_15693;
+
     private boolean isOpen = false;
     private String openType = "first_inventory";
 
@@ -189,7 +188,7 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
         scanThead = new Thread(new Runnable() {
             @Override
             public void run() {
-                readdata_15693 = HfData.HfGetData.getReaddata_15693();
+               final byte[]  readdata_15693 = HfData.HfGetData.getReaddata_15693();
                 LogUtil.e("读写器返回状态:"+ ByteUtil.bytes2BinStr(readdata_15693));
         
 
@@ -209,32 +208,29 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                 Target_Ant[2]|=0x01;
                 Target_Ant[2]|=0x02;
                 int[] fcmdret=new int[1];
-                strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
-                if(strings == null){
-                    LogUtil.e("");
-                    return;
-                }
-                LogUtil.e("扫描获取的数据数量:"+ strings.length);
+                final String[]  strings = HfData.HfGetData.Scan15693(Target_Ant, fcmdret);
+                final String[] finalStrings = strings == null ? new String[0] : strings;
+                LogUtil.e("扫描获取的数据数量:"+ finalStrings.length);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         tv_rfid_status.setText("读写器状态:"+ByteUtil.bytes2BinStr(readdata_15693));
-                        tv_result.setText("扫描到的标签数:"+strings.length);
+                        tv_result.setText("扫描到的标签数:"+finalStrings.length);
                         switch (openType){
                             case "first_inventory":
-                                beforList = strings.clone();
+                                beforList = finalStrings.clone();
                                 presentList = null;
                             break;
                             case "openDoor_common":
-                                presentList = strings.clone();
+                                presentList = finalStrings.clone();
                                 sendToServiceData();
                                 break;
                             case "openDoor_addGoods":
-                                presentList = strings.clone();
+                                presentList = finalStrings.clone();
                                 sendToServiceData();
                                 break;
                             case "openDoor_clearAll":
-                                presentList = strings.clone();
+                                presentList = finalStrings.clone();
                                 sendToServiceData();
                                 break;
                         }
@@ -335,8 +331,9 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
     private void sendToServiceData(){
                     String rfid = compare(presentList,beforList);
                     if (rfid != null) {
-                        rfid =  rfid.replace("[","").replace("]","");
+                        rfid =  rfid.replace("[","").replace("]","").replace("\"","");
                     }
+        LogUtil.e("rfid","rfid:"+rfid);
                     Map<String,String> params = new HashMap<>();
                     params.put("api_name","closeDoor");
                     params.put("macno",App.getInstances().imei);
@@ -353,8 +350,35 @@ public class MainActivity extends AppCompatActivity implements MqttCallback{
                             params.put("closeType","3");
                             break;
                     }
+                    if (presentList!=null&&beforList!=null){
+                        if (presentList.length>beforList.length){
+                            params.put("type","1");
+                        }else {
+                            params.put("type","2");
+                        }
+                    }
                     String data = GsonUtil.GsonString(params);
                     sendToMQTT("yihongshg/apk/device/closeDoorNotify",data);
+    }
+
+    private void closeDoorWithEmptyGoods(){
+        Map<String,String> params = new HashMap<>();
+        params.put("api_name","closeDoor");
+        params.put("macno",App.getInstances().imei);
+        params.put("oid",operateBean.getOid());
+        switch (openType){
+            case "openDoor_common":
+                params.put("openType","2");
+                break;
+            case "openDoor_addGoods":
+                params.put("openType","1");
+                break;
+            case "openDoor_clearAll":
+                params.put("closeType","3");
+                break;
+        }
+        String data = GsonUtil.GsonString(params);
+        sendToMQTT("yihongshg/apk/device/closeDoorNotify",data);
     }
 
     @Override
