@@ -16,15 +16,52 @@ import io.reactivex.disposables.Disposable;
  * @describe
  */
 public class RxTimerUtil {
-    private static Disposable mDisposable;
+
+    public Disposable mDisposable;
 
     /** milliseconds毫秒后执行next操作
      *
      * @param milliseconds
      * @param next
      */
-    public static void timer(long milliseconds,final IRxNext next) {
+    public void timer(long milliseconds,final IRxNext next) {
         Observable.timer(milliseconds, TimeUnit.MILLISECONDS)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<Long>() {
+                    @Override
+                    public void onSubscribe(@NonNull Disposable disposable) {
+                        mDisposable = disposable;
+                    }
+
+                    @Override
+                    public void onNext(@NonNull Long number) {
+                        if(next!=null){
+                            next.doNext(number);
+                        }
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        //取消订阅
+                        mDisposable.dispose();
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        //取消订阅
+                        mDisposable.dispose();
+                    }
+                });
+    }
+
+
+    /** 每隔milliseconds毫秒后执行next操作
+     *
+     * @param milliseconds
+     * @param next
+     */
+    public void interval(long milliseconds,final IRxNext next){
+        Observable.interval(milliseconds, TimeUnit.MILLISECONDS)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<Long>() {
                     @Override
@@ -41,26 +78,18 @@ public class RxTimerUtil {
 
                     @Override
                     public void onError(@NonNull Throwable e) {
-                        //取消订阅
-                        cancel();
+
                     }
 
                     @Override
                     public void onComplete() {
-                        //取消订阅
-                        cancel();
+
                     }
                 });
     }
 
-
-    /** 每隔milliseconds毫秒后执行next操作
-     *
-     * @param milliseconds
-     * @param next
-     */
-    public static void interval(long milliseconds,final IRxNext next){
-        Observable.interval(milliseconds, TimeUnit.MILLISECONDS)
+    public void intervalM(long meli,final IRxNext next){
+        Observable.interval(meli, TimeUnit.MINUTES)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<Long>() {
                     @Override
@@ -91,7 +120,7 @@ public class RxTimerUtil {
     /**
      * 取消订阅
      */
-    public static void cancel(){
+    public void cancel(){
         if(mDisposable!=null&&!mDisposable.isDisposed()){
             mDisposable.dispose();
             LogUtil.e("====定时器取消======");

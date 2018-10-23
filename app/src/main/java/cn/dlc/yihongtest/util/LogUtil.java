@@ -4,6 +4,8 @@ import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 
 import cn.dlc.yihongtest.base.App;
+import cn.dlc.yihongtest.event.ShowLogEvent;
 
 /**
  * @author YoungeTao
@@ -30,6 +33,7 @@ public class LogUtil {
     private static boolean isSaveToFile = false;
     private static int saveLevel = 0;
     private static String PATH_LOGCAT;
+    private static boolean isShowToDisplay = false;
 
     public static void init(String defaultTag){
         if(!TextUtils.isEmpty(defaultTag)){
@@ -122,6 +126,9 @@ public class LogUtil {
      * @param msg
      */
     private static void printer(int tagLevel,String msg){
+        if(isShowToDisplay){
+            EventBus.getDefault().post(new ShowLogEvent(new String(msg)));
+        }
         StackTraceElement e = Thread.currentThread().getStackTrace()[4];
         String fileName = e.getFileName();
         int lineNum = e.getLineNumber();

@@ -1,16 +1,11 @@
 package cn.dlc.yihongtest.util;
 
-import android.text.TextUtils;
-
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
-
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * @author YoungeTao
