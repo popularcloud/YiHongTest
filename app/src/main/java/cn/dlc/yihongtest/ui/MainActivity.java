@@ -436,6 +436,10 @@ public class MainActivity extends BaseActivity implements MqttCallback{
         CmdPack openCmd = new CmdPack("3BB30004A41000320A");
         LogUtil.e("MainActivity", "开门命令..." + openCmd.getPackHexStr());
         mSerialPortManager.sendCommand(openCmd);
+
+        CmdPack openCmd2 = new CmdPack("3BB30004A41001320B");
+        LogUtil.e("MainActivity", "开门命令2..." + openCmd2.getPackHexStr());
+        mSerialPortManager.sendCommand(openCmd2);
     }
 
     /**
