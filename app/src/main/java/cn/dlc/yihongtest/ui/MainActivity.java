@@ -76,6 +76,8 @@ public class MainActivity extends BaseActivity implements MqttCallback{
     TextView tv_result;
     @BindView(R.id.btn_clear_log)
     Button btn_clear_log;
+    @BindView(R.id.tv_deviceNumber)
+    TextView tv_deviceNumber;
 /*    @BindView(R.id.tv_rfid_status)
     TextView tv_rfid_status;*/
     byte[] Target_Ant = new byte[4];
@@ -124,6 +126,7 @@ public class MainActivity extends BaseActivity implements MqttCallback{
      * 初始化布局
      */
     private void initView() {
+        tv_deviceNumber.setText(App.getInstances().imei);
         sp_lock_devicePath.setSelection(0);
         sp_rfid_devicePath.setSelection(0);
         sp_lock_devicePath.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -213,6 +216,8 @@ public class MainActivity extends BaseActivity implements MqttCallback{
                 }
             }
         });
+
+
     }
 
     /**
